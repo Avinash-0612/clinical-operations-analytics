@@ -1,1 +1,151 @@
 
+-- ============================================================================
+-- HEALTHCARE KPIs AND CLINICAL MEASURES
+-- Power BI DAX for Clinical Operations Dashboard
+-- ============================================================================
+
+-- 1. Bed Occupancy Rate
+Bed Occupancy % = 
+VAR Occupied = COUNTROWS('Current Census')
+VAR Licensed = SUM('Units'[LicensedBeds])
+RETURN
+    DIVIDE(Occupied, Licensed, 0)
+
+-- 2. Average Length of Stay (ALOS)
+ALOS (Days) = 
+AVERAGEX(
+    'Admissions',
+    DATEDIFF(
+        'Admissions'[AdmissionDate],
+        COALESCE('Admissions'[DischargeDate], TODAY()),
+        DAY
+    )
+)
+
+-- 3. Readmission Rate (30-day)
+Readmission Rate % = 
+VAR Readmitted = CALCULATE(
+    COUNTROWS('Admissions'),
+    'Admissions'[IsReadmitted30Day] = TRUE
+)
+VAR TotalDischarged = CALCULATE(
+    COUNTROWS('Admissions'),
+    NOT(ISBLANK('Admissions'[DischargeDate]))
+)
+RETURN
+    DIVIDE(Readmitted, TotalDischarged, 0)
+
+-- 4. ED Wait Time (Average)
+Avg ED Wait Time (Min) = 
+AVERAGE('ED Visits'[TimeToProvider_Minutes])
+
+-- 5. Patients at High Risk (Top Priority)
+High Risk Patients = 
+CALCULATE(
+    COUNTROWS('Readmission Risk'),
+    'Readmission Risk'[RiskCategory] = "High Risk"
+)
+
+-- 6. Capacity Status Color Coding
+Capacity Status Color = 
+SWITCH(
+    TRUE(),
+    [Bed Occupancy %] > 0.95, "#FF0000",  -- Red
+    [Bed Occupancy %] > 0.85, "#FFD700",  -- Yellow
+    "#008000"                              -- Green
+)
+
+-- 7. Discharge Forecast (Next 24 Hours)
+Predicted Discharges = 
+CALCULATE(
+    COUNTROWS('Admissions'),
+    'Admissions'[PredictedDischargeDate] <= TODAY() + 1,
+    'Admissions'[DischargeDate] = BLANK()
+)
+
+-- 8. Case Management Intervention Rate
+Intervention Rate % = 
+VAR HighRisk = CALCULATE(
+    COUNTROWS('Readmission Risk'),
+    'Readmission Risk'[RiskCategory] = "High Risk"
+)
+VAR Contacted = CALCULATE(
+    COUNTROWS('Readmission Risk'),
+    'Readmission Risk'[InterventionStatus] = "Contacted"
+)
+RETURN
+    DIVIDE(Contacted, HighRisk, 0)
+
+-- 9. Nursing Hours Per Patient Day (HPPD)
+HPPD = 
+VAR TotalNursingHours = SUM('Staffing'[NursingHoursWorked])
+VAR PatientDays = SUMX(
+    'Admissions',
+    DATEDIFF(
+        'Admissions'[AdmissionDate],
+        COALESCE('Admissions'[DischargeDate], TODAY()),
+        DAY
+    )
+)
+RETURN
+    DIVIDE(TotalNursingHours, PatientDays, 0)
+
+-- 10. Patient Satisfaction (HCAHPS) Trend
+Avg Patient Satisfaction = 
+AVERAGE('HCAHPS'[OverallRating])
+
+-- 11. Rolling 7-Day Census Average
+7-Day Avg Census = 
+AVERAGEX(
+    DATESINPERIOD(
+        'Date'[Date],
+        MAX('Date'[Date]),
+        -7,
+        DAY
+    ),
+    [Bed Occupancy %]
+)
+
+-- 12. Avoidable Days (Delay in Discharge)
+Avoidable Days = 
+SUMX(
+    'Admissions',
+    IF(
+        NOT(ISBLANK('Admissions'[DischargeDelayReason])),
+        DATEDIFF(
+            'Admissions'[DischargeOrderTime],
+            'Admissions'[ActualDischargeTime],
+            DAY
+        ),
+        0
+    )
+)
+
+-- 13. ML Model Accuracy Tracking
+Model Precision = 
+VAR TruePositives = CALCULATE(
+    COUNTROWS('Readmission Risk'),
+    'Readmission Risk'[PredictedReadmission] = 1,
+    'Readmission Risk'[ActualReadmission] = 1
+)
+VAR PredictedPositives = SUM('Readmission Risk'[PredictedReadmission])
+RETURN
+    DIVIDE(TruePositives, PredictedPositives, 0)
+
+-- 14. Cost of Readmissions (Financial Impact)
+Readmission Cost Impact = 
+VAR AvgCostPerReadmission = 15000  -- $15k average cost
+VAR PredictedReadmissions = [High Risk Patients] * 0.7  -- 70% of high risk actually readmit
+RETURN
+    PredictedReadmissions * AvgCostPerReadmission
+
+-- 15. Bed Turnover Rate (Efficiency)
+Bed Turnover Rate = 
+VAR Discharges = CALCULATE(
+    COUNTROWS('Admissions'),
+    NOT(ISBLANK('Admissions'[DischargeDate]))
+)
+VAR Beds = SUM('Units'[LicensedBeds])
+VAR Days = DISTINCTCOUNT('Date'[Date])
+RETURN
+    DIVIDE(Discharges, Beds * Days, 0) * 1000  -- Per 1000 bed-days
