@@ -1,0 +1,17 @@
+[
+  {
+    "readmission_probability": 0.509,
+    "risk_category": "Medium Risk",
+    "recommended_action": "Standard discharge planning protocol",
+    "top_risk_factors": [
+      "Multiple chronic conditions",
+      "Frequent admissions"
+    ]
+  },
+  {
+    "readmission_probability": 0.252,
+    "risk_category": "Low Risk",
+    "recommended_action": "Standard discharge process",
+    "top_risk_factors": []
+  }
+]
