@@ -19,17 +19,26 @@ Built a comprehensive clinical operations solution for a multi-hospital health s
 
 ## 🏥 Clinical Architecture
 
-| Layer | Components |
-|-------|-----------|
-| **Epic Clarity (EHR)** | ADT, Labs, Clinical Documentation, Billing |
-| **↓** | *Real-time data pipeline* |
-| **Azure Synapse** | Data quality, Feature engineering, SQL Pools |
-| **↓** | *ML scoring API* |
-| **Azure ML** | Random Forest model, Time-series forecasting |
-| **↓** | *REST API integration* |
-| **Power BI** | Executive Dashboard, Patient Flow, Risk Workbench |
-| **↓** | *Clinical decision support* |
-| **Clinical Teams** | Case Managers, Bed Management, Quality Officers |
+**Data Flow:**
+
+1️⃣ **Epic Clarity (EHR)**  
+*Source Systems:* ADT (Admissions), Labs, Medications, Clinical Documentation, Billing/DRG  
+↓ *Real-time CDC pipeline (15-min latency)*
+
+2️⃣ **Azure Synapse Analytics**  
+*Processing:* Data quality checks, Feature engineering for ML, SQL Pools serving layer  
+↓ *Scheduled scoring + API calls*
+
+3️⃣ **Azure Machine Learning**  
+*Models:* Readmission Risk Classifier (Random Forest), Bed Demand Forecasting (Prophet)  
+↓ *REST API returns probability scores*
+
+4️⃣ **Power BI Clinical Dashboard**  
+*Pages:* Executive Command Center, Patient Flow Tracker, Readmission Risk Workbench  
+↓ *Automated alerts + embedded reports*
+
+5️⃣ **Clinical Teams**  
+*Users:* Case Managers (interventions), Bed Management (capacity planning), Quality Officers (monitoring)
 
 ## 📊 Dashboard Capabilities
 
